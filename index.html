@@ -3,24 +3,1181 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Demo App</title>
+  <title>Intercom Messenger — Issue Simulator</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f12;
+      --surface: #18181f;
+      --surface2: #1e1e28;
+      --border: #2a2a38;
+      --accent: #6c63ff;
+      --accent-dim: rgba(108,99,255,0.15);
+      --warn: #f59e0b;
+      --warn-dim: rgba(245,158,11,0.12);
+      --error: #ef4444;
+      --error-dim: rgba(239,68,68,0.12);
+      --success: #22c55e;
+      --success-dim: rgba(34,197,94,0.12);
+      --text: #e8e8f0;
+      --text-muted: #7070a0;
+      --text-dim: #4a4a6a;
+      --mono: 'IBM Plex Mono', monospace;
+      --sans: 'Inter', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      grid-template-rows: auto 1fr;
+    }
+
+    /* ── HEADER ── */
+    header {
+      grid-column: 1 / -1;
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: var(--surface);
+    }
+
+    .logo {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo svg { width: 20px; height: 20px; fill: white; }
+
+    header h1 {
+      font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+    }
+    header p {
+      font-size: 12px; color: var(--text-muted); margin-top: 2px;
+    }
+
+    .header-right {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 10px;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 6px var(--success);
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .status-dot.broken {
+      background: var(--error);
+      box-shadow: 0 0 6px var(--error);
+    }
+
+    .status-label {
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--text-muted);
+    }
+
+    /* ── SIDEBAR ── */
+    aside {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 0;
+    }
+
+    .sidebar-section {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-section-header {
+      padding: 12px 20px 10px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-count {
+      font-size: 10px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-radius: 20px;
+      padding: 2px 8px;
+      font-family: var(--mono);
+    }
+
+    /* ── ISSUE TOGGLE ── */
+    .issue-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border-left: 2px solid transparent;
+    }
+    .issue-row:hover { background: var(--surface2); }
+    .issue-row.active {
+      border-left-color: var(--error);
+      background: rgba(239,68,68,0.05);
+    }
+
+    .issue-info { flex: 1; min-width: 0; }
+    .issue-name {
+      font-size: 12px; font-weight: 500;
+      line-height: 1.3;
+      color: var(--text);
+    }
+    .issue-category {
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* Toggle switch */
+    .toggle {
+      flex-shrink: 0;
+      width: 36px; height: 20px;
+      background: var(--border);
+      border-radius: 20px;
+      position: relative;
+      transition: background 0.2s;
+      margin-top: 2px;
+    }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 14px; height: 14px;
+      background: var(--text-dim);
+      border-radius: 50%;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .toggle.on {
+      background: var(--error);
+    }
+    .toggle.on::after {
+      background: white;
+      transform: translateX(16px);
+    }
+
+    /* ── RESET BAR ── */
+    .reset-bar {
+      padding: 12px 20px;
+      display: flex;
+      gap: 8px;
+    }
+    .btn {
+      font-family: var(--sans);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s;
+      background: transparent;
+      color: var(--text-muted);
+    }
+    .btn:hover { background: var(--surface2); color: var(--text); }
+    .btn.danger {
+      border-color: rgba(239,68,68,0.4);
+      color: var(--error);
+    }
+    .btn.danger:hover { background: var(--error-dim); }
+    .btn.success-btn {
+      border-color: rgba(34,197,94,0.4);
+      color: var(--success);
+    }
+    .btn.success-btn:hover { background: var(--success-dim); }
+
+    /* ── MAIN PANEL ── */
+    main {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── FAKE BROWSER ── */
+    .browser-chrome {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .browser-dots {
+      display: flex; gap: 6px;
+    }
+    .browser-dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--border);
+    }
+
+    .browser-bar {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .browser-bar .lock { color: var(--success); font-size: 11px; }
+
+    /* ── SIMULATED PAGE ── */
+    .sim-page {
+      flex: 1;
+      position: relative;
+      background: #fff;
+      overflow: hidden;
+      min-height: 420px;
+    }
+
+    .sim-content {
+      padding: 48px 64px;
+      font-family: var(--sans);
+    }
+    .sim-content h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #111;
+      margin-bottom: 12px;
+    }
+    .sim-content p {
+      font-size: 15px;
+      color: #555;
+      line-height: 1.6;
+      max-width: 480px;
+    }
+
+    /* ── MESSENGER BUBBLE ── */
+    .messenger-bubble {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      background: #6c63ff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(108,99,255,0.4);
+      transition: all 0.3s;
+      z-index: 10;
+    }
+    .messenger-bubble svg { width: 28px; height: 28px; fill: white; }
+    .messenger-bubble:hover { transform: scale(1.08); }
+
+    .messenger-bubble.hidden-bubble { display: none; }
+    .messenger-bubble.behind { z-index: 0; opacity: 0.3; }
+    .messenger-bubble.offscreen { bottom: -100px; }
+    .messenger-bubble.wrong-pos { left: 24px; right: auto; bottom: 80px; }
+
+    /* ── OVERLAPPING ELEMENT ── */
+    .z-overlap {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 200px;
+      height: 200px;
+      background: rgba(255, 120, 50, 0.15);
+      border: 2px dashed rgba(255,120,50,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #d97706;
+      text-align: center;
+      padding: 16px;
+      z-index: 9;
+      font-family: var(--sans);
+    }
+    .z-overlap.show { display: flex; }
+
+    /* ── CSS ZOOM OVERLAY ── */
+    .zoom-indicator {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: rgba(245,158,11,0.15);
+      border: 1px solid rgba(245,158,11,0.4);
+      color: #d97706;
+      font-size: 11px;
+      font-family: var(--mono);
+      padding: 6px 12px;
+      border-radius: 6px;
+      display: none;
+    }
+    .zoom-indicator.show { display: block; }
+
+    /* ── BLOCKER OVERLAY ── */
+    .blocker-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15,15,18,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      backdrop-filter: blur(3px);
+    }
+    .blocker-overlay.show { display: flex; }
+    .blocker-msg {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px 36px;
+      text-align: center;
+      max-width: 340px;
+    }
+    .blocker-msg .icon { font-size: 32px; margin-bottom: 12px; }
+    .blocker-msg h3 {
+      font-size: 15px;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .blocker-msg p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      font-family: var(--mono);
+    }
+
+    /* ── CONSOLE PANEL ── */
+    .console-panel {
+      background: #0d1117;
+      border-top: 1px solid var(--border);
+      min-height: 140px;
+      max-height: 220px;
+      overflow-y: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+    }
+
+    .console-header {
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      background: #0d1117;
+    }
+
+    .console-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+
+    .console-log {
+      padding: 6px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .log-type {
+      flex-shrink: 0;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .log-type.error { background: var(--error-dim); color: var(--error); }
+    .log-type.warn { background: var(--warn-dim); color: var(--warn); }
+    .log-type.info { background: var(--accent-dim); color: var(--accent); }
+    .log-type.success { background: var(--success-dim); color: var(--success); }
+
+    .log-msg { color: var(--text-muted); line-height: 1.5; }
+    .log-msg .hi { color: var(--text); }
+
+    .console-empty {
+      padding: 24px 16px;
+      color: var(--text-dim);
+      text-align: center;
+      font-size: 11px;
+    }
+
+    /* ── DIAGNOSIS PANEL ── */
+    .diagnosis-section {
+      padding: 20px 32px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .diagnosis-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+    }
+
+    .diagnosis-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    .diag-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: none;
+    }
+    .diag-card.show { display: block; }
+
+    .diag-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .diag-badge {
+      font-size: 9px;
+      font-weight: 600;
+      font-family: var(--mono);
+      padding: 2px 7px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .diag-badge.error { background: var(--error-dim); color: var(--error); }
+    .diag-badge.warn { background: var(--warn-dim); color: var(--warn); }
+
+    .diag-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .diag-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 8px;
+    }
+
+    .diag-fix {
+      font-size: 11px;
+      font-family: var(--mono);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--success);
+      line-height: 1.5;
+    }
+
+    .diag-placeholder {
+      color: var(--text-dim);
+      font-size: 12px;
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  </style>
 </head>
 <body>
-  <h1>Welcome to My App</h1>
-  <p>This is a demo site for Fin Messenger integration.</p>
 
-  <!-- Intercom snippet goes here (Step 4) -->
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15H9V8h2v9zm4 0h-2V8h2v9z"/></svg>
+  </div>
+  <div>
+    <h1>Intercom Messenger — Issue Simulator</h1>
+    <p>Toggle issues on/off to see how they manifest and how to fix them</p>
+  </div>
+  <div class="header-right">
+    <div class="status-dot" id="globalDot"></div>
+    <span class="status-label" id="globalLabel">All clear</span>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<aside>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-header">
+      Installation <span class="section-count" id="cnt-install">0</span>
+    </div>
+
+    <div class="issue-row" id="row-no-snippet" onclick="toggle('no-snippet')">
+      <div class="issue-info">
+        <div class="issue-name">Missing snippet entirely</div>
+        <div class="issue-category">Install · Network 404</div>
+      </div>
+      <div class="toggle" id="tog-no-snippet"></div>
+    </div>
+
+    <div class="issue-row" id="row-wrong-appid" onclick="toggle('wrong-appid')">
+      <div class="issue-info">
+        <div class="issue-name">Wrong / missing app_id</div>
+        <div class="issue-category">Install · Network 404</div>
+      </div>
+      <div class="toggle" id="tog-wrong-appid"></div>
+    </div>
+
+    <div class="issue-row" id="row-wrong-placement" onclick="toggle('wrong-placement')">
+      <div class="issue-info">
+        <div class="issue-name">Snippet in &lt;head&gt;, not &lt;/body&gt;</div>
+        <div class="issue-category">Install · Timing / race condition</div>
+      </div>
+      <div class="toggle" id="tog-wrong-placement"></div>
+    </div>
+
+    <div class="issue-row" id="row-messenger-toggle" onclick="toggle('messenger-toggle')">
+      <div class="issue-info">
+        <div class="issue-name">Messenger APIs toggle off</div>
+        <div class="issue-category">Install · Settings</div>
+      </div>
+      <div class="toggle" id="tog-messenger-toggle"></div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-header">
+      Region &amp; Auth <span class="section-count" id="cnt-auth">0</span>
+    </div>
+
+    <div class="issue-row" id="row-eu-missing" onclick="toggle('eu-missing')">
+      <div class="issue-info">
+        <div class="issue-name">EU/AU api_base missing</div>
+        <div class="issue-category">Region · Silent failure</div>
+      </div>
+      <div class="toggle" id="tog-eu-missing"></div>
+    </div>
+
+    <div class="issue-row" id="row-401" onclick="toggle('401')">
+      <div class="issue-info">
+        <div class="issue-name">401 — No / bad auth token</div>
+        <div class="issue-category">Auth · Unauthorized</div>
+      </div>
+      <div class="toggle" id="tog-401"></div>
+    </div>
+
+    <div class="issue-row" id="row-403" onclick="toggle('403')">
+      <div class="issue-info">
+        <div class="issue-name">403 — Token lacks scope</div>
+        <div class="issue-category">Auth · Forbidden</div>
+      </div>
+      <div class="toggle" id="tog-403"></div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-header">
+      Display &amp; CSS <span class="section-count" id="cnt-css">0</span>
+    </div>
+
+    <div class="issue-row" id="row-z-index" onclick="toggle('z-index')">
+      <div class="issue-info">
+        <div class="issue-name">Widget hidden behind element</div>
+        <div class="issue-category">CSS · z-index conflict</div>
+      </div>
+      <div class="toggle" id="tog-z-index"></div>
+    </div>
+
+    <div class="issue-row" id="row-css-zoom" onclick="toggle('css-zoom')">
+      <div class="issue-info">
+        <div class="issue-name">CSS zoom on parent</div>
+        <div class="issue-category">CSS · Layout distortion</div>
+      </div>
+      <div class="toggle" id="tog-css-zoom"></div>
+    </div>
+
+    <div class="issue-row" id="row-wrong-pos" onclick="toggle('wrong-pos')">
+      <div class="issue-info">
+        <div class="issue-name">Misaligned position / padding</div>
+        <div class="issue-category">CSS · Messenger placement</div>
+      </div>
+      <div class="toggle" id="tog-wrong-pos"></div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-header">
+      Security &amp; Network <span class="section-count" id="cnt-net">0</span>
+    </div>
+
+    <div class="issue-row" id="row-csp" onclick="toggle('csp')">
+      <div class="issue-info">
+        <div class="issue-name">Content Security Policy block</div>
+        <div class="issue-category">Security · CSP script-src</div>
+      </div>
+      <div class="toggle" id="tog-csp"></div>
+    </div>
+
+    <div class="issue-row" id="row-adblocker" onclick="toggle('adblocker')">
+      <div class="issue-info">
+        <div class="issue-name">Ad blocker / private mode</div>
+        <div class="issue-category">Browser · Extension block</div>
+      </div>
+      <div class="toggle" id="tog-adblocker"></div>
+    </div>
+
+    <div class="issue-row" id="row-429" onclick="toggle('429')">
+      <div class="issue-info">
+        <div class="issue-name">429 — Rate limit exceeded</div>
+        <div class="issue-category">API · Too many requests</div>
+      </div>
+      <div class="toggle" id="tog-429"></div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-header">
+      JavaScript Bugs <span class="section-count" id="cnt-js">0</span>
+    </div>
+
+    <div class="issue-row" id="row-created-at" onclick="toggle('created-at')">
+      <div class="issue-info">
+        <div class="issue-name">created_at in milliseconds</div>
+        <div class="issue-category">JS Bug · Wrong timestamp type</div>
+      </div>
+      <div class="toggle" id="tog-created-at"></div>
+    </div>
+
+    <div class="issue-row" id="row-shutdown" onclick="toggle('shutdown')">
+      <div class="issue-info">
+        <div class="issue-name">shutdown() missing on logout</div>
+        <div class="issue-category">JS Bug · Session leak</div>
+      </div>
+      <div class="toggle" id="tog-shutdown"></div>
+    </div>
+
+    <div class="issue-row" id="row-boot-spa" onclick="toggle('boot-spa')">
+      <div class="issue-info">
+        <div class="issue-name">boot() called on every route</div>
+        <div class="issue-category">JS Bug · SPA / duplicate sessions</div>
+      </div>
+      <div class="toggle" id="tog-boot-spa"></div>
+    </div>
+
+    <div class="issue-row" id="row-string-null" onclick="toggle('string-null')">
+      <div class="issue-info">
+        <div class="issue-name">String "undefined" / "null" values</div>
+        <div class="issue-category">JS Bug · Data shows as Unknown</div>
+      </div>
+      <div class="toggle" id="tog-string-null"></div>
+    </div>
+  </div>
+
+  <div class="reset-bar">
+    <button class="btn danger" onclick="clearAll()">Clear all</button>
+    <button class="btn success-btn" onclick="triggerRandom()">Random issue</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main>
+
+  <!-- FAKE BROWSER -->
+  <div class="browser-chrome">
+    <div class="browser-dots">
+      <div class="browser-dot" style="background:#ff5f57"></div>
+      <div class="browser-dot" style="background:#febc2e"></div>
+      <div class="browser-dot" style="background:#28c840"></div>
+    </div>
+    <div class="browser-bar">
+      <span class="lock">🔒</span>
+      <span id="urlBar">https://acme-app.io/dashboard</span>
+    </div>
+  </div>
+
+  <!-- SIMULATED PAGE -->
+  <div class="sim-page" id="simPage">
+    <div class="sim-content">
+      <h2>Acme Dashboard</h2>
+      <p>Welcome back! Your workspace is ready. Toggle issues in the sidebar to simulate how the Intercom Messenger behaves under different failure conditions.</p>
+    </div>
+
+    <!-- z-index overlap element -->
+    <div class="z-overlap" id="zOverlap">
+      High z-index element<br>(covers Messenger)
+    </div>
+
+    <!-- zoom indicator -->
+    <div class="zoom-indicator" id="zoomIndicator">⚠ CSS zoom: 1.4 applied</div>
+
+    <!-- Messenger bubble -->
+    <div class="messenger-bubble" id="messengerBubble" onclick="openMessenger()">
+      <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+    </div>
+
+    <!-- Blocker overlay -->
+    <div class="blocker-overlay" id="blockerOverlay">
+      <div class="blocker-msg" id="blockerMsg">
+        <div class="icon">🚫</div>
+        <h3 id="blockerTitle">Blocked</h3>
+        <p id="blockerText">Reason here</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONSOLE -->
+  <div class="console-panel">
+    <div class="console-header">
+      <div class="console-dot" id="consoleDot"></div>
+      Console
+    </div>
+    <div id="consoleBody">
+      <div class="console-empty">No errors. Messenger loaded successfully.</div>
+    </div>
+  </div>
+
+  <!-- DIAGNOSIS -->
+  <div class="diagnosis-section">
+    <div class="diagnosis-title">Active issue diagnosis</div>
+    <div class="diagnosis-grid" id="diagGrid">
+      <div class="diag-placeholder" id="diagPlaceholder">No active issues — toggle something in the sidebar to see a diagnosis.</div>
+    </div>
+  </div>
+
+</main>
+
 <script>
-  window.intercomSettings = {
-    api_base: "https://api-iam.intercom.io",
-    app_id: "zfwk4lev",
+  // ── State ──
+  const active = new Set();
+
+  // ── Issue definitions ──
+  const issues = {
+    'no-snippet': {
+      category: 'install',
+      label: 'Missing snippet',
+      severity: 'error',
+      bubble: 'hidden-bubble',
+      blocker: null,
+      logs: [
+        { type: 'error', msg: '<span class="hi">widget.intercom.io/widget/abc123</span> — request missing from Network tab. Snippet not included on this page.' },
+        { type: 'warn', msg: 'Intercom is not defined — calling code will throw TypeError.' },
+      ],
+      diagnosis: 'The Intercom JavaScript snippet was never added to this page. The widget request never fires because there is nothing to fire it.',
+      fix: '<!-- Before </body> -->\n<script>(function(){...})()</scr' + 'ipt>',
+    },
+    'wrong-appid': {
+      category: 'install',
+      label: 'Wrong app_id',
+      severity: 'error',
+      bubble: 'hidden-bubble',
+      blocker: null,
+      logs: [
+        { type: 'error', msg: '<span class="hi">GET widget.intercom.io/widget/WRONG_ID</span> — 404 Not Found' },
+        { type: 'warn', msg: 'Messenger will not initialise. No error shown to user.' },
+      ],
+      diagnosis: 'app_id placeholder was left in the snippet or is incorrect. The widget CDN returns 404 because no workspace matches that ID.',
+      fix: 'window.intercomSettings = {\n  app_id: "ecahpwf5" // your real ID\n};',
+    },
+    'wrong-placement': {
+      category: 'install',
+      label: 'Snippet in <head>',
+      severity: 'warn',
+      bubble: 'offscreen',
+      blocker: null,
+      logs: [
+        { type: 'warn', msg: 'Intercom snippet placed in &lt;head&gt; — may cause race condition on page load.' },
+        { type: 'warn', msg: 'DOM not ready when Intercom boots. Messenger may fail to attach to custom launcher selectors.' },
+      ],
+      diagnosis: 'Snippet must be placed immediately before </body>. In <head>, it can run before the DOM exists, causing timing issues especially with custom_launcher_selector.',
+      fix: '<!-- Move snippet here, before </body> -->\n</body>',
+    },
+    'messenger-toggle': {
+      category: 'install',
+      label: 'APIs toggle off',
+      severity: 'error',
+      bubble: 'hidden-bubble',
+      blocker: null,
+      logs: [
+        { type: 'error', msg: 'All Messenger API requests failing silently.' },
+        { type: 'info', msg: 'Check: Settings → Channels → Messenger → Install — toggle must be ON.' },
+      ],
+      diagnosis: 'The Messenger APIs toggle in Intercom settings is disabled. All requests fail regardless of snippet correctness.',
+      fix: 'Settings → Channels → Messenger → Install\nEnable the toggle.',
+    },
+    'eu-missing': {
+      category: 'auth',
+      label: 'EU/AU api_base missing',
+      severity: 'error',
+      bubble: 'hidden-bubble',
+      blocker: null,
+      logs: [
+        { type: 'error', msg: 'api-iam.intercom.io — EU workspace routing to wrong region.' },
+        { type: 'warn', msg: 'Requests silently fail. No visible error in console.' },
+      ],
+      diagnosis: 'EU and AU workspaces require the api_base parameter. Without it, requests go to the US endpoint which rejects them silently.',
+      fix: 'window.intercomSettings = {\n  app_id: "abc123",\n  api_base: "https://api-iam.eu.intercom.io"\n};',
+    },
+    '401': {
+      category: 'auth',
+      label: '401 Unauthorized',
+      severity: 'error',
+      bubble: null,
+      blocker: { title: '401 Unauthorized', text: 'Authorization: Bearer header missing or token is revoked / malformed. I don\'t know who you are.' },
+      logs: [
+        { type: 'error', msg: '<span class="hi">POST api.intercom.io/contacts</span> — 401 Unauthorized' },
+        { type: 'info', msg: 'Check: Authorization header format must be "Bearer {token}" — not Basic, not raw token.' },
+      ],
+      diagnosis: '401 means unauthenticated — the token is absent, malformed, or revoked. Distinct from 403 which is authenticated-but-denied.',
+      fix: 'curl https://api.intercom.io/contacts \\\n  -H "Authorization: Bearer YOUR_TOKEN" \\\n  -H "Accept: application/json"',
+    },
+    '403': {
+      category: 'auth',
+      label: '403 Forbidden',
+      severity: 'error',
+      bubble: null,
+      blocker: { title: '403 Forbidden', text: 'Token is valid and recognised, but it lacks the required scope for this endpoint. I know who you are, but you can\'t do that.' },
+      logs: [
+        { type: 'error', msg: '<span class="hi">POST api.intercom.io/messages</span> — 403 Forbidden' },
+        { type: 'info', msg: 'Token authenticated but missing scope for this endpoint. Check token permissions in Developer Hub.' },
+        { type: 'info', msg: 'Also check: IP allowlist — is the caller\'s IP permitted?' },
+      ],
+      diagnosis: '403 ≠ 401. Token is valid and recognised, but lacks permission for this action. Check scope or IP allowlist changes.',
+      fix: 'Developer Hub → Your App → Authentication\nVerify required scopes are enabled for this endpoint.',
+    },
+    'z-index': {
+      category: 'css',
+      label: 'z-index conflict',
+      severity: 'warn',
+      bubble: 'behind',
+      blocker: null,
+      logs: [
+        { type: 'warn', msg: 'Messenger widget rendered but hidden behind higher z-index element.' },
+        { type: 'info', msg: 'Fix: add z_index to intercomSettings, or lower z-index of conflicting element.' },
+      ],
+      diagnosis: 'Widget loads (200 in Network tab) but is not visible. A page element has a higher z-index stacking order, covering the Messenger.',
+      fix: 'window.intercomSettings = {\n  app_id: "abc123",\n  z_index: 9999\n};',
+    },
+    'css-zoom': {
+      category: 'css',
+      label: 'CSS zoom applied',
+      severity: 'warn',
+      bubble: null,
+      blocker: null,
+      logs: [
+        { type: 'warn', msg: 'CSS zoom property detected on parent container — Intercom widgets must not receive CSS zoom.' },
+        { type: 'warn', msg: 'Messenger may appear distorted, misscaled, or misaligned.' },
+      ],
+      diagnosis: 'A parent container has the CSS zoom property. Intercom explicitly states widgets must not receive CSS zoom — isolate or override it.',
+      fix: '.intercom-launcher {\n  zoom: reset; /* or remove zoom from parent */\n}',
+    },
+    'wrong-pos': {
+      category: 'css',
+      label: 'Misaligned position',
+      severity: 'warn',
+      bubble: 'wrong-pos',
+      blocker: null,
+      logs: [
+        { type: 'warn', msg: 'Messenger alignment or padding misconfigured.' },
+        { type: 'info', msg: 'vertical_padding and horizontal_padding minimum value is 20px. Does not apply on mobile.' },
+      ],
+      diagnosis: 'alignment, vertical_padding, or horizontal_padding are set to invalid values. Minimum padding is 20px.',
+      fix: 'window.intercomSettings = {\n  alignment: "right", // "left" or "right"\n  vertical_padding: 24,\n  horizontal_padding: 24\n};',
+    },
+    'csp': {
+      category: 'net',
+      label: 'CSP block',
+      severity: 'error',
+      bubble: 'hidden-bubble',
+      blocker: { title: 'Blocked by Content Security Policy', text: 'Refused to load script from \'widget.intercom.io\'. CSP script-src directive does not allow this origin.' },
+      logs: [
+        { type: 'error', msg: 'Refused to load script from <span class="hi">\'https://widget.intercom.io/widget/abc123\'</span> because it violates the following Content Security Policy directive: "script-src \'self\'".' },
+      ],
+      diagnosis: 'The site\'s CSP policy does not allowlist Intercom\'s domain. The script is blocked at the browser before it can run.',
+      fix: 'Content-Security-Policy: script-src \'self\'\n  https://widget.intercom.io\n  https://js.intercomcdn.com;',
+    },
+    'adblocker': {
+      category: 'net',
+      label: 'Ad blocker',
+      severity: 'warn',
+      bubble: 'hidden-bubble',
+      blocker: { title: 'Ad blocker active', text: 'Browser extension blocking widget.intercom.io. No entry appears in Network tab — the request is silently dropped.' },
+      logs: [
+        { type: 'warn', msg: 'widget.intercom.io request absent from Network tab entirely — blocked before it reaches the server.' },
+        { type: 'info', msg: 'Test in incognito without extensions to confirm. Advise customer this is browser-side, not an Intercom config issue.' },
+      ],
+      diagnosis: 'An ad blocker or privacy extension is silently dropping the Intercom script request. No Network tab entry at all.',
+      fix: 'Test in incognito (no extensions).\nThis is browser-side — advise customer to allowlist Intercom or test in clean browser.',
+    },
+    '429': {
+      category: 'net',
+      label: '429 Rate limited',
+      severity: 'warn',
+      bubble: null,
+      blocker: { title: '429 Too Many Requests', text: 'Rate limit exceeded. X-RateLimit-Remaining: 0. Check X-RateLimit-Reset for when the window resets.' },
+      logs: [
+        { type: 'error', msg: '<span class="hi">POST api.intercom.io/events</span> — 429 Too Many Requests' },
+        { type: 'info', msg: 'X-RateLimit-Limit: 10000 | X-RateLimit-Remaining: 0 | X-RateLimit-Reset: 1749592800' },
+        { type: 'warn', msg: 'Implement exponential backoff — do not retry immediately on reset.' },
+      ],
+      diagnosis: 'Default limit is 10,000 req/min (private apps). Check X-RateLimit-Reset for exact reset time. update() has its own separate throttle: 20 calls per 30 min.',
+      fix: '// Read headers before each request\nif (remaining < 100) {\n  await sleep(resetTime - Date.now());\n}',
+    },
+    'created-at': {
+      category: 'js',
+      label: 'created_at bug',
+      severity: 'warn',
+      bubble: null,
+      blocker: null,
+      logs: [
+        { type: 'warn', msg: '<span class="hi">created_at: 1749592800000</span> — value is in milliseconds. Intercom expects Unix seconds.' },
+        { type: 'warn', msg: 'created_at: new Date() also wrong — Date object, not integer.' },
+        { type: 'info', msg: 'Correct: Math.floor(Date.now() / 1000)' },
+      ],
+      diagnosis: 'created_at must be a Unix timestamp in seconds, not milliseconds and not a Date object. Date.now() returns ms — divide by 1000.',
+      fix: '// ❌ Wrong\ncreated_at: Date.now()      // ms\ncreated_at: new Date()      // Object\n\n// ✅ Correct\ncreated_at: Math.floor(Date.now() / 1000)',
+    },
+    'shutdown': {
+      category: 'js',
+      label: 'Missing shutdown()',
+      severity: 'error',
+      bubble: null,
+      blocker: { title: 'Session not cleared on logout', text: 'Previous user\'s conversations visible in Messenger. shutdown() was not called — cookies and session persist.' },
+      logs: [
+        { type: 'error', msg: 'Intercom session persists after logout. Previous user\'s conversation history visible to next user on shared device.' },
+        { type: 'info', msg: 'Intercom(\'shutdown\') must be called BEFORE auth.signOut() on every logout path.' },
+      ],
+      diagnosis: 'shutdown() clears the Intercom session and cookies. Skipping it means the next user on a shared device sees the previous user\'s conversations.',
+      fix: 'function logout() {\n  Intercom("shutdown"); // Always first\n  auth.signOut();\n  window.location.href = "/login";\n}',
+    },
+    'boot-spa': {
+      category: 'js',
+      label: 'boot() on every route',
+      severity: 'warn',
+      bubble: null,
+      blocker: null,
+      logs: [
+        { type: 'warn', msg: 'Intercom(\'boot\') called on route change — duplicate sessions being created.' },
+        { type: 'info', msg: 'boot() should be called once on login. Use update() on route changes to log page views and check for new messages.' },
+      ],
+      diagnosis: 'boot() initialises a new session. Calling it on every SPA route creates duplicate sessions. Use update() on navigation instead.',
+      fix: '// On app load / login:\nIntercom("boot", { app_id: "abc123", email: user.email });\n\n// On every route change:\nIntercom("update"); // NOT boot()',
+    },
+    'string-null': {
+      category: 'js',
+      label: 'String "undefined" values',
+      severity: 'warn',
+      bubble: null,
+      blocker: null,
+      logs: [
+        { type: 'warn', msg: '<span class="hi">plan: "undefined"</span> — string "undefined" will appear as Unknown in Intercom dashboard.' },
+        { type: 'warn', msg: '<span class="hi">company_id: "null"</span> — string "null" treated as unknown attribute value.' },
+        { type: 'info', msg: 'Omit the attribute entirely or pass JS undefined (not the string) to skip it.' },
+      ],
+      diagnosis: 'Passing the strings "undefined" or "null" as values (not the JS values) causes attributes to appear as Unknown in Intercom.',
+      fix: '// ❌ Wrong\nplan: "undefined"\n\n// ✅ Correct\nplan: userPlan || undefined // JS undefined omits key',
+    },
   };
-</script>
 
+  // ── Category counters ──
+  const catMap = {
+    'install': 'cnt-install',
+    'auth': 'cnt-auth',
+    'css': 'cnt-css',
+    'net': 'cnt-net',
+    'js': 'cnt-js',
+  };
 
-<script>
-  // We pre-filled your app ID in the widget URL: 'https://widget.intercom.io/widget/zfwk4lev'
-  (function(){var w=window;var ic=w.Intercom;if(typeof ic==="function"){ic('reattach_activator');ic('update',w.intercomSettings);}else{var d=document;var i=function(){i.c(arguments);};i.q=[];i.c=function(args){i.q.push(args);};w.Intercom=i;var l=function(){var s=d.createElement('script');s.type='text/javascript';s.async=true;s.src='https://widget.intercom.io/widget/zfwk4lev';var x=d.getElementsByTagName('script')[0];x.parentNode.insertBefore(s,x);};if(document.readyState==='complete'){l();}else if(w.attachEvent){w.attachEvent('onload',l);}else{w.addEventListener('load',l,false);}}})();
+  function toggle(id) {
+    if (active.has(id)) {
+      active.delete(id);
+    } else {
+      active.add(id);
+    }
+    render();
+  }
+
+  function clearAll() {
+    active.clear();
+    render();
+  }
+
+  function triggerRandom() {
+    const keys = Object.keys(issues);
+    clearAll();
+    const pick = keys[Math.floor(Math.random() * keys.length)];
+    active.add(pick);
+    render();
+  }
+
+  function render() {
+    // Toggles and rows
+    for (const id of Object.keys(issues)) {
+      const tog = document.getElementById('tog-' + id);
+      const row = document.getElementById('row-' + id);
+      if (active.has(id)) {
+        tog.classList.add('on');
+        row.classList.add('active');
+      } else {
+        tog.classList.remove('on');
+        row.classList.remove('active');
+      }
+    }
+
+    // Category counts
+    const cats = {};
+    for (const id of active) {
+      const cat = issues[id].category;
+      cats[cat] = (cats[cat] || 0) + 1;
+    }
+    for (const [cat, elId] of Object.entries(catMap)) {
+      const el = document.getElementById(elId);
+      el.textContent = cats[cat] || 0;
+      el.style.display = cats[cat] ? 'inline-flex' : 'none';
+    }
+
+    // Bubble state — priority order
+    const bubble = document.getElementById('messengerBubble');
+    bubble.className = 'messenger-bubble';
+    const hiddenIssues = [...active].filter(id => issues[id].bubble === 'hidden-bubble');
+    const behindIssues = [...active].filter(id => issues[id].bubble === 'behind');
+    const offscreenIssues = [...active].filter(id => issues[id].bubble === 'offscreen');
+    const wrongPosIssues = [...active].filter(id => issues[id].bubble === 'wrong-pos');
+
+    if (hiddenIssues.length) bubble.classList.add('hidden-bubble');
+    else if (offscreenIssues.length) bubble.classList.add('offscreen');
+    else if (behindIssues.length) bubble.classList.add('behind');
+    else if (wrongPosIssues.length) bubble.classList.add('wrong-pos');
+
+    // z-index overlap element
+    const zOverlap = document.getElementById('zOverlap');
+    zOverlap.classList.toggle('show', active.has('z-index'));
+
+    // zoom indicator
+    const zoomInd = document.getElementById('zoomIndicator');
+    zoomInd.classList.toggle('show', active.has('css-zoom'));
+
+    // Blocker overlay — show last-active blocker
+    const blockerOverlay = document.getElementById('blockerOverlay');
+    const blockerTitle = document.getElementById('blockerTitle');
+    const blockerText = document.getElementById('blockerText');
+    const blockers = [...active].filter(id => issues[id].blocker);
+    if (blockers.length) {
+      const last = blockers[blockers.length - 1];
+      blockerTitle.textContent = issues[last].blocker.title;
+      blockerText.textContent = issues[last].blocker.text;
+      blockerOverlay.classList.add('show');
+    } else {
+      blockerOverlay.classList.remove('show');
+    }
+
+    // Console
+    const consoleBody = document.getElementById('consoleBody');
+    const consoleDot = document.getElementById('consoleDot');
+    if (active.size === 0) {
+      consoleBody.innerHTML = '<div class="console-empty">No errors. Messenger loaded successfully.</div>';
+      consoleDot.style.background = 'var(--text-dim)';
+    } else {
+      const allLogs = [...active].flatMap(id => issues[id].logs);
+      const hasError = allLogs.some(l => l.type === 'error');
+      consoleDot.style.background = hasError ? 'var(--error)' : 'var(--warn)';
+      consoleBody.innerHTML = allLogs.map(l =>
+        `<div class="console-log">
+          <span class="log-type ${l.type}">${l.type}</span>
+          <span class="log-msg">${l.msg}</span>
+        </div>`
+      ).join('');
+    }
+
+    // Global status
+    const dot = document.getElementById('globalDot');
+    const label = document.getElementById('globalLabel');
+    const errorCount = [...active].filter(id => issues[id].severity === 'error').length;
+    const warnCount = [...active].filter(id => issues[id].severity === 'warn').length;
+    if (errorCount) {
+      dot.className = 'status-dot broken';
+      label.textContent = `${errorCount} error${errorCount > 1 ? 's' : ''}${warnCount ? ', ' + warnCount + ' warn' : ''}`;
+    } else if (warnCount) {
+      dot.className = 'status-dot';
+      dot.style.background = 'var(--warn)';
+      dot.style.boxShadow = '0 0 6px var(--warn)';
+      label.textContent = `${warnCount} warning${warnCount > 1 ? 's' : ''}`;
+    } else {
+      dot.className = 'status-dot';
+      dot.style.background = '';
+      dot.style.boxShadow = '';
+      label.textContent = 'All clear';
+    }
+
+    // Diagnosis cards
+    const grid = document.getElementById('diagGrid');
+    const placeholder = document.getElementById('diagPlaceholder');
+    if (active.size === 0) {
+      placeholder.style.display = 'block';
+      // clear all cards
+      grid.querySelectorAll('.diag-card').forEach(c => c.remove());
+    } else {
+      placeholder.style.display = 'none';
+      grid.querySelectorAll('.diag-card').forEach(c => c.remove());
+      for (const id of active) {
+        const iss = issues[id];
+        const card = document.createElement('div');
+        card.className = 'diag-card show';
+        card.innerHTML = `
+          <div class="diag-card-header">
+            <span class="diag-badge ${iss.severity}">${iss.severity}</span>
+            <span class="diag-name">${iss.label}</span>
+          </div>
+          <div class="diag-desc">${iss.diagnosis}</div>
+          <div class="diag-fix">${escapeHtml(iss.fix)}</div>
+        `;
+        grid.appendChild(card);
+      }
+    }
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function openMessenger() {
+    if (active.size === 0) {
+      alert('Messenger opened! (In a real install, the chat panel would open here.)');
+    }
+  }
+
+  // init
+  render();
 </script>
 </body>
 </html>
